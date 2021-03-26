@@ -28,6 +28,11 @@ class PostURLTests(TestCase):
         self.author = PostURLTests.post.author
         self.authorized_author.force_login(self.author)
 
+    def test_404_for_non_existent_pages(self):
+        """Если страница не найдена, сервер возвращает код 404"""
+        response = self.guest_client.get('/missing/')
+        self.assertEqual(response.status_code, 404)
+
     def test_urls_exists_at_desired_location(self):
         """Страницы /, /group/<slug>/, /username, /username/post_id
         доступны любому пользователю"""
@@ -88,7 +93,7 @@ class PostURLTests(TestCase):
         self.assertRedirects(response, redirect_url)
 
     def test_urls_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
+        """URL-адрес использует соответствующий шаблон"""
         templates_url_names = {
             '/': 'index.html',
             '/group/test_group/': 'group.html',

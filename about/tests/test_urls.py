@@ -7,7 +7,7 @@ class StaticURLTests(TestCase):
 
     def test_about_urls_exists_at_desired_locations(self):
         """Проверка доступности адресов
-        /about/author/ и /about/tech/."""
+        /about/author/ и /about/tech/"""
         urls = (
             '/about/author/',
             '/about/tech/',
@@ -19,7 +19,7 @@ class StaticURLTests(TestCase):
 
     def test_about_urls_use_correct_templates(self):
         """Проверка шаблона адресов
-        /about/author/ и /about/tech/."""
+        /about/author/ и /about/tech/"""
         templates = {
             '/about/author/': 'about/author.html',
             '/about/tech/': 'about/tech.html',

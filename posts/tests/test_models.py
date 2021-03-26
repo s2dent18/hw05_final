@@ -32,7 +32,7 @@ class PostModelTest(TestCase):
                     post._meta.get_field(value).verbose_name, expected)
 
     def test_help_text(self):
-        """help_text полей text и group совпадает с ожидаемым."""
+        """help_text полей text и group совпадает с ожидаемым"""
         post = PostModelTest.post
         help_texts = {
             'group': 'Необязательное поле',

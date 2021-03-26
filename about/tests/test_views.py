@@ -8,7 +8,7 @@ class StaticViewsTests(TestCase):
 
     def test_about_pages_accessible_by_names(self):
         """URLs, генерируемые при помощи имен about:author,
-        about:tech, доступны."""
+        about:tech, доступны"""
         reverse_names = (
             reverse('about:author'),
             reverse('about:tech'),
@@ -20,7 +20,7 @@ class StaticViewsTests(TestCase):
 
     def test_aboutr_pages_uses_correct_templates(self):
         """При запросе к about:
-        применяются правильные шаблоны."""
+        применяются правильные шаблоны"""
         templates_page_names = {
             'about/author.html': reverse('about:author'),
             'about/tech.html': reverse('about:tech'),

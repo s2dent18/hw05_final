@@ -1,9 +1,15 @@
+import shutil
+import tempfile
+
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Group, Post
+from posts.models import Comment, Follow, Group, Post
 
 User = get_user_model()
 
@@ -12,6 +18,20 @@ class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test_group',
@@ -21,6 +41,7 @@ class PostPagesTests(TestCase):
             text='Текст поста для тестирования',
             group=cls.group,
             author=User.objects.create_user(username='Authorized_user'),
+            image=uploaded,
         )
         cls.empty_group = Group.objects.create(
             title='Пустая группа',
@@ -28,13 +49,22 @@ class PostPagesTests(TestCase):
             description='Пустая группа для тестирования'
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
     def setUp(self):
         self.user = User.objects.get(username=PostPagesTests.post.author)
+        self.follower = User.objects.create(username='Test_follower')
+        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        self.authorized_follower = Client()
+        self.authorized_follower.force_login(self.follower)
 
     def test_pages_use_correct_templates(self):
-        """URL-адрес использует соответствующий шаблон."""
+        """URL-адрес использует соответствующий шаблон"""
         templates_page_names = {
             'index.html': reverse('index'),
             'group.html': (reverse(
@@ -50,7 +80,7 @@ class PostPagesTests(TestCase):
 
     def test_context_for_index_group_profile(self):
         """Шаблоны index, group, profile
-        сформированы с правильным контекстом."""
+        сформированы с правильным контекстом"""
         templates = (
             reverse('index'),
             reverse('group_post', kwargs={'slug': PostPagesTests.group.slug}),
@@ -64,13 +94,51 @@ class PostPagesTests(TestCase):
                 post_pub_date_0 = post_object.pub_date
                 post_text_0 = post_object.text
                 post_group_0 = post_object.group.id
+                post_image_0 = post_object.image
                 self.assertEqual(post_author_0, PostPagesTests.post.author)
                 self.assertEqual(post_pub_date_0, PostPagesTests.post.pub_date)
                 self.assertEqual(post_text_0, PostPagesTests.post.text)
                 self.assertEqual(post_group_0, PostPagesTests.post.group.id)
+                self.assertEqual(post_image_0, PostPagesTests.post.image)
+
+    def test_context_for_followers(self):
+        """Контекст страницы follow сформирован корректно
+        для подписанного пользователя"""
+        Follow.objects.create(
+            user=self.follower,
+            author=self.user,
+        )
+        response = self.authorized_follower.get(reverse(
+            'follow_index')
+        )
+        post_object = response.context['page'][0]
+        post_author_0 = post_object.author
+        post_pub_date_0 = post_object.pub_date
+        post_text_0 = post_object.text
+        post_group_0 = post_object.group.id
+        post_image_0 = post_object.image
+        self.assertEqual(post_author_0, PostPagesTests.post.author)
+        self.assertEqual(post_pub_date_0, PostPagesTests.post.pub_date)
+        self.assertEqual(post_text_0, PostPagesTests.post.text)
+        self.assertEqual(post_group_0, PostPagesTests.post.group.id)
+        self.assertEqual(post_image_0, PostPagesTests.post.image)
+
+    def test_context_for_unfollowers(self):
+        """Контекст страницы follow пуст
+        для неподписанного пользователя"""
+        Follow.objects.create(
+            user=self.follower,
+            author=self.user,
+        )
+        response = self.authorized_client.get(reverse(
+            'follow_index')
+        )
+        post_object = response.context['page']
+        post = PostPagesTests.post
+        self.assertFalse(post.text in post_object)
 
     def test_user_post_show_correct_context(self):
-        """Шаблон post сформирован с правильным контекстом."""
+        """Шаблон post сформирован с правильным контекстом"""
         response = self.authorized_client.get(reverse(
             'post', kwargs={
                 'username': self.user.username,
@@ -80,13 +148,15 @@ class PostPagesTests(TestCase):
         post_pub_date_0 = post_object.pub_date
         post_text_0 = post_object.text
         post_group_0 = post_object.group.id
+        post_image_0 = post_object.image
         self.assertEqual(post_author_0, PostPagesTests.post.author)
         self.assertEqual(post_pub_date_0, PostPagesTests.post.pub_date)
         self.assertEqual(post_text_0, PostPagesTests.post.text)
         self.assertEqual(post_group_0, PostPagesTests.post.group.id)
+        self.assertEqual(post_image_0, PostPagesTests.post.image)
 
     def test_new_page_show_correct_context(self):
-        """Шаблон new сформирован с правильным контекстом."""
+        """Шаблон new сформирован с правильным контекстом"""
         response = self.authorized_client.get(reverse('new_post'))
         form_fields = {
             'text': forms.fields.CharField,
@@ -132,6 +202,110 @@ class PostPagesTests(TestCase):
             'group_post', kwargs={'slug': PostPagesTests.empty_group.slug}))
         form_data = response.context['page']
         self.assertFalse(post.text in form_data)
+
+    def test_index_page_cache(self):
+        """Кэш работает корректно"""
+        response_before = self.authorized_client.get(reverse('index'))
+        Post.objects.create(
+            text='Новый пост',
+            author=self.user,
+        )
+        response_after_add = self.authorized_client.get(reverse('index'))
+        self.assertEqual(
+            response_before.content,
+            response_after_add.content
+        )
+        cache.clear()
+        response_after_clear = self.authorized_client.get(reverse('index'))
+        self.assertNotEqual(
+            response_before.content,
+            response_after_clear.content
+        )
+
+    def test_user_can_follow(self):
+        """Активный пользователь может подписаться на посты автора"""
+        follow_count = Follow.objects.count()
+        response = self.authorized_follower.get(reverse(
+            'profile_follow',
+            kwargs={
+                'username': self.user.username}))
+        redirect_url = '/Authorized_user/'
+        self.assertRedirects(response, redirect_url)
+        self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.assertTrue(
+            Follow.objects.filter(
+                user=User.objects.get(username=self.follower.username),
+                author=User.objects.get(username=self.user.username),
+            ).exists()
+        )
+
+    def test_guest_can_not_follow(self):
+        """Гость не может подписаться на посты автора"""
+        follow_count = Follow.objects.count()
+        response = self.guest_client.get(reverse(
+            'profile_follow',
+            kwargs={
+                'username': self.user.username}))
+        redirect_url = '/auth/login/?next=%2FAuthorized_user%2Ffollow%2F'
+        self.assertRedirects(response, redirect_url)
+        self.assertEqual(Follow.objects.count(), follow_count)
+
+    def test_user_can_unfollow(self):
+        """Активный пользователь может отписаться от постов автора"""
+        Follow.objects.create(
+            user=self.follower,
+            author=self.user,
+        )
+        follow_count = Follow.objects.count()
+        response = self.authorized_follower.get(reverse(
+            'profile_unfollow',
+            kwargs={
+                'username': self.user.username}))
+        redirect_url = '/Authorized_user/'
+        self.assertRedirects(response, redirect_url)
+        self.assertEqual(Follow.objects.count(), follow_count - 1)
+        self.assertFalse(
+            Follow.objects.filter(
+                user=User.objects.get(username=self.follower.username),
+                author=User.objects.get(username=self.user.username),
+            ).exists()
+        )
+
+    def test_user_can_create_comment(self):
+        """Авторизованный пользователь может комментировать посты"""
+        comments_count = Comment.objects.count()
+        Comment.objects.create(
+            text='Текст комментария',
+            author=self.user,
+            post=PostPagesTests.post
+        )
+        self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertTrue(
+            Comment.objects.filter(
+                author=User.objects.get(username=self.user.username),
+                post=PostPagesTests.post
+            ).exists()
+        )
+
+    def test_guest_can_not_create_comment(self):
+        """Неавторизованный пользователь не может комментировать посты"""
+        comments_count = Comment.objects.count()
+        form_data = {
+            'text': 'Тестовый комментарий',
+        }
+        response = self.guest_client.post(
+            reverse(
+                'add_comment',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': self.post.id}
+            ),
+            data=form_data,
+            follow=True
+        )
+        redirect_url = '/auth/login/?next=%2FAuthorized_user%2F1%2Fcomment'
+        self.assertRedirects(response, redirect_url)
+        self.assertEqual(Comment.objects.count(), comments_count)
 
 
 class PaginatorViewsTest(TestCase):
