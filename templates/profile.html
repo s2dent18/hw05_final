@@ -14,7 +14,9 @@
         {% for post in page %}
           {% include "templates_for_include/post_item.html" with post=post %} 
         {% endfor %}
-        {% include "templates_for_include/paginator.html" with items=page paginator=paginator %}
+        {% if page.has_other_pages %}
+          {% include "templates_for_include/paginator.html" %}
+        {% endif %}
       </div>
     </div>
   </main>

@@ -6,7 +6,7 @@
   <div class="container">
     {% include "templates_for_include/menu.html" with index=True %}
     {% load cache %}
-    {% cache 20 index_page page%}
+    {% cache 20 index_page page %}
       <h1>Последние обновления на сайте</h1>
         {% for post in page %}
           {% include "templates_for_include/post_item.html" with post=post %}
@@ -14,7 +14,7 @@
     {% endcache %}
 
     {% if page.has_other_pages %}
-      {% include "templates_for_include/paginator.html" with items=page paginator=paginator%}
+      {% include "templates_for_include/paginator.html" %}
     {% endif %}
   </div>
   
