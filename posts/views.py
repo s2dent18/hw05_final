@@ -58,7 +58,6 @@ def profile(request, username):
         "page": page,
         "post_count": post_count,
         "author": user,
-        "paginator": paginator,
         "following": following,
         "follows": follows,
         "followers": followers,
@@ -144,7 +143,6 @@ def follow_index(request):
     page = paginator.get_page(page_number)
     context = {
         "page": page,
-        "paginator": paginator,
     }
     return render(request, "follow.html", context)
 
