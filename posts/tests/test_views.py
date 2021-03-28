@@ -229,7 +229,9 @@ class PostPagesTests(TestCase):
             'profile_follow',
             kwargs={
                 'username': self.user.username}))
-        redirect_url = '/Authorized_user/'
+        redirect_url = reverse(
+            'profile',
+            kwargs={'username': self.user.username})
         self.assertRedirects(response, redirect_url)
         self.assertEqual(Follow.objects.count(), follow_count + 1)
         self.assertTrue(
@@ -242,11 +244,11 @@ class PostPagesTests(TestCase):
     def test_guest_can_not_follow(self):
         """Гость не может подписаться на посты автора"""
         follow_count = Follow.objects.count()
-        response = self.guest_client.get(reverse(
-            'profile_follow',
-            kwargs={
-                'username': self.user.username}))
-        redirect_url = '/auth/login/?next=%2FAuthorized_user%2Ffollow%2F'
+        kwargs = {'username': self.user.username}
+        profile_follow = reverse('profile_follow', kwargs=kwargs)
+        response = self.guest_client.get(profile_follow)
+        login = reverse('login')
+        redirect_url = f'{login}?next={profile_follow}'
         self.assertRedirects(response, redirect_url)
         self.assertEqual(Follow.objects.count(), follow_count)
 
@@ -261,7 +263,9 @@ class PostPagesTests(TestCase):
             'profile_unfollow',
             kwargs={
                 'username': self.user.username}))
-        redirect_url = '/Authorized_user/'
+        redirect_url = reverse(
+            'profile',
+            kwargs={'username': self.user.username})
         self.assertRedirects(response, redirect_url)
         self.assertEqual(Follow.objects.count(), follow_count - 1)
         self.assertFalse(
@@ -293,17 +297,17 @@ class PostPagesTests(TestCase):
         form_data = {
             'text': 'Тестовый комментарий',
         }
+        kwargs = {
+            'username': self.user.username,
+            'post_id': self.post.id}
+        add_comment = reverse('add_comment', kwargs=kwargs)
         response = self.guest_client.post(
-            reverse(
-                'add_comment',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id}
-            ),
+            add_comment,
             data=form_data,
             follow=True
         )
-        redirect_url = '/auth/login/?next=%2FAuthorized_user%2F1%2Fcomment'
+        login = reverse('login')
+        redirect_url = f'{login}?next={add_comment}'
         self.assertRedirects(response, redirect_url)
         self.assertEqual(Comment.objects.count(), comments_count)
 

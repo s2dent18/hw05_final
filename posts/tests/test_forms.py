@@ -88,7 +88,7 @@ class PostCreateFormTests(TestCase):
         response = self.authorized_client.post(
             reverse('new_post'),
             data=form_data,
-            follow=True
+            follow=True,
         )
         self.assertRedirects(response, reverse('index'))
         self.assertEqual(Post.objects.count(), posts_count + 1)
@@ -99,6 +99,20 @@ class PostCreateFormTests(TestCase):
                 image='posts/small.gif'
             ).exists()
         )
+        templates = (
+            reverse('index'),
+            reverse('profile', kwargs={'username': self.user.username}),
+            reverse(
+                'post',
+                kwargs={'username': self.user.username, 'post_id': 2}),
+            reverse(
+                'group_post',
+                kwargs={'slug': PostCreateFormTests.group.slug}),
+        )
+        for template in templates:
+            with self.subTest(template=template):
+                response = self.authorized_client.get(template)
+                self.assertContains(response, '<img')
 
     def test_create_comment(self):
         """Валидная форма создает комментарий"""
@@ -116,7 +130,12 @@ class PostCreateFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        redirect_url = '/Authorized_user/1/'
+        redirect_url = reverse(
+            'post',
+            kwargs={
+                'username': self.user.username,
+                'post_id': self.post.id}
+        )
         self.assertRedirects(response, redirect_url)
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertTrue(
