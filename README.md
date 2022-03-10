@@ -1,5 +1,6 @@
 [![Python](https://img.shields.io/badge/-Python-464646?style=flat-square&logo=Python)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/-Django-464646?style=flat-square&logo=Django)](https://www.djangoproject.com/)
+[![Django](https://img.shields.io/badge/-Django-464646?style=flat-square&logo=Django)](https://www.djangoproject.com/)  
+[![UnitTest](https://img.shields.io/badge/-Python-464646?style=flat-square&logo=Python)](https://docs.python.org/3/library/unittest.html)  
 
 # Сервис Yatube
 
@@ -23,7 +24,8 @@ Foodgram - социальная сеть для публикации личны�
 * система подписок на пользователей  
 * система групп  
 * фильтрация постов в ленте 
-* модерация и создание групп реализованы через панель администратора  
+* модерация и создание групп реализованы через панель администратора 
+* проект покрыт тестами   
 
 ## Локальный запуск проекта:
 
